@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* stylelint-disable */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   SECTORE 360 — Design System
+   Brand: Sectore Tecknologies
+   Tagline: Securing Today, Powering Tomorrow
+   Font: Inter (Google Fonts)
+   Vibe: Dark premium enterprise — Linear × Stripe Dashboard
+   ============================================================ */
+
+@layer base {
+  /* ── Light Mode ─────────────────────────────────────────── */
+  :root {
+    --radius: 0.5rem;
+
+    /* Core surfaces */
+    --background: 210 40% 98%;          /* #F8FAFC — near-white with blue tint */
+    --foreground: 222 47% 11%;          /* #0F172A — near-black */
+    --card: 0 0% 100%;                  /* #FFFFFF */
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Brand — Sectore Blue */
+    --primary: 221 83% 53%;             /* #2563EB — strong blue */
+    --primary-foreground: 0 0% 100%;    /* white on blue */
+
+    /* Secondary — Dark Blue tone */
+    --secondary: 213 94% 18%;           /* #013A7A — dark navy */
+    --secondary-foreground: 0 0% 100%;
+
+    /* UI surfaces */
+    --muted: 214 32% 91%;               /* #E2E8F0 */
+    --muted-foreground: 215 16% 47%;    /* #64748B */
+    --accent: 213 40% 96%;              /* #EFF4FF — light blue tint */
+    --accent-foreground: 221 83% 40%;   /* dark blue text */
+
+    /* Semantic */
+    --destructive: 0 84% 60%;           /* #EF4444 */
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 64% 52%;             /* #34D399 */
+    --warning: 38 92% 50%;              /* #F59E0B */
+    --info: 199 89% 48%;                /* #0EA5E9 */
+
+    /* Structure */
+    --border: 214 32% 91%;              /* #E2E8F0 */
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+
+    /* Charts */
+    --chart-1: 221 83% 53%;
+    --chart-2: 158 64% 40%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+
+    /* Sidebar — slightly darker than page bg */
+    --sidebar-background: 222 47% 98%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 213 40% 94%;
+    --sidebar-accent-foreground: 221 83% 40%;
+    --sidebar-border: 214 32% 88%;
+    --sidebar-ring: 221 83% 53%;
+
+    /* Gradients & shadows */
+    --gradient-primary: linear-gradient(135deg, hsl(221 83% 53%), hsl(213 94% 28%));
+    --gradient-card: linear-gradient(160deg, hsl(0 0% 100%) 0%, hsl(213 40% 97%) 100%);
+    --gradient-background: linear-gradient(180deg, hsl(210 40% 98%) 0%, hsl(213 40% 95%) 100%);
+    --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+    --shadow-hover: 0 4px 12px rgba(37, 99, 235, 0.12);
+  }
+
+  /* ── Dark Mode ──────────────────────────────────────────── */
+  .dark {
+    /* Core surfaces — deep dark navy */
+    --background: 222 47% 7%;           /* #0B0F19 — deepest bg */
+    --foreground: 213 31% 91%;          /* #E2E8F0 — primary text */
+    --card: 222 47% 9%;                 /* #0F1629 — card surface */
+    --card-foreground: 213 31% 91%;
+    --popover: 222 47% 9%;
+    --popover-foreground: 213 31% 91%;
+
+    /* Brand — brighter blue for dark */
+    --primary: 217 91% 60%;             /* #3B82F6 — vivid blue */
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary */
+    --secondary: 217 33% 17%;           /* #1E2A4A — elevated surface */
+    --secondary-foreground: 213 31% 91%;
+
+    /* UI surfaces */
+    --muted: 217 33% 14%;               /* #171F35 */
+    --muted-foreground: 215 20% 60%;    /* #93A3BE */
+    --accent: 217 33% 17%;
+    --accent-foreground: 217 91% 65%;   /* brighter blue accent text */
+
+    /* Semantic */
+    --destructive: 0 72% 51%;           /* #DC2626 */
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 64% 52%;
+    --warning: 38 92% 50%;
+    --info: 199 89% 55%;
+
+    /* Structure */
+    --border: 217 33% 16%;              /* #1E2A3E — subtle border */
+    --input: 217 33% 14%;
+    --ring: 217 91% 60%;
+
+    /* Charts */
+    --chart-1: 217 91% 60%;
+    --chart-2: 158 64% 45%;
+    --chart-3: 38 92% 55%;
+    --chart-4: 280 65% 65%;
+    --chart-5: 340 75% 60%;
+
+    /* Sidebar — slightly lighter than page bg */
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 213 31% 80%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 13%;
+    --sidebar-accent-foreground: 217 91% 65%;
+    --sidebar-border: 217 33% 14%;
+    --sidebar-ring: 217 91% 60%;
+
+    /* Gradients & shadows */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(222 83% 45%));
+    --gradient-card: linear-gradient(160deg, hsl(222 47% 10%) 0%, hsl(222 47% 8%) 100%);
+    --gradient-background: linear-gradient(180deg, hsl(222 47% 7%) 0%, hsl(222 47% 6%) 100%);
+    --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --shadow-hover: 0 4px 16px rgba(59, 130, 246, 0.15);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Typography scale */
+  h1 { @apply text-3xl font-bold tracking-tight; }
+  h2 { @apply text-2xl font-semibold tracking-tight; }
+  h3 { @apply text-xl font-semibold; }
+  h4 { @apply text-lg font-semibold; }
+  h5 { @apply text-base font-medium; }
+  h6 { @apply text-sm font-medium; }
+
+  /* Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+}
+
+/* ── Utility classes ──────────────────────────────────────── */
+@layer utilities {
+  /* Gradient text */
+  .gradient-text {
+    background-image: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Brand pulse glow for key CTAs */
+  .glow-primary {
+    box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4);
+  }
+
+  /* Glass surface — for modals, overlays */
+  .glass {
+    background: hsl(var(--card) / 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Page section fade-in */
+  .animate-fade-in {
+    animation: fade-in 0.4s ease-out both;
+  }
+
+  /* Sidebar item hover */
+  .nav-item-active {
+    @apply bg-primary/10 text-primary font-medium;
+  }
+}
