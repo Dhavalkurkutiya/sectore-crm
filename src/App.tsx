@@ -62,7 +62,18 @@ const App: React.FC = () => {
       .catch(() => { setNeedsSetup(false); setSetupChecked(true); });
   }, []);
 
-  if (!setupChecked) return null; // brief loading state
+  if (!setupChecked) {
+    return (
+      <ThemeProvider>
+        <div className="flex h-screen w-full items-center justify-center bg-background">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          </div>
+        </div>
+      </ThemeProvider>
+    );
+  } // brief loading state
 
   if (needsSetup) {
     return (

@@ -22,4 +22,10 @@ export default defineConfig({
     // (prevents "Cannot read properties of null (reading 'useEffect')")
     dedupe: ["react", "react-dom"],
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'react-router-dom'],
+  },
 });
