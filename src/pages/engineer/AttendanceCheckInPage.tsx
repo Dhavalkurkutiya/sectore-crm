@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PhotoUpload } from '@/components/engineer/PhotoUpload';
 import type { PhotoItem } from '@/components/engineer/PhotoUpload';
+import { SwipeActionButton } from '@/components/engineer/SwipeActionButton';
 import { toast } from 'sonner';
 import { MapPin, Monitor, Wifi, WifiOff, LogIn, ChevronLeft, Camera } from 'lucide-react';
 
@@ -33,6 +34,7 @@ export default function AttendanceCheckInPage() {
 
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date()), 1000);
+    captureGPS();
     return () => clearInterval(interval);
   }, []);
 
@@ -131,6 +133,17 @@ export default function AttendanceCheckInPage() {
           <p className="text-sm text-muted-foreground mt-1">
             {now.toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
           </p>
+          <div className="mt-2.5">
+            {now.getHours() > 9 || (now.getHours() === 9 && now.getMinutes() > 45) ? (
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs">
+                Entry: Late (&gt; 09:45 AM)
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 text-xs">
+                Shift: On Time
+              </Badge>
+            )}
+          </div>
         </CardContent>
       </Card>
 

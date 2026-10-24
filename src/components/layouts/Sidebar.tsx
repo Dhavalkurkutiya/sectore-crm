@@ -104,7 +104,9 @@ export function Sidebar({ mode = 'desktop' }: SidebarProps) {
 
         {/* ── Navigation ─────────────────────────────────── */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 flex flex-col gap-1">
-          {Object.entries(grouped).map(([groupName, items]) => (
+          {Object.entries(grouped)
+            .filter(([_, items]) => items.length > 0)
+            .map(([groupName, items]) => (
             <div key={groupName} className="mb-2">
               {/* Group label — hidden when collapsed */}
               {!collapsed && (

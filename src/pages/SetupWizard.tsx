@@ -25,12 +25,12 @@ import { usersApi, configApi } from '@/lib/api';
 function passwordStrength(p: string): { score: number; label: string; color: string } {
   if (!p) return { score: 0, label: '', color: '' };
   let score = 0;
-  if (p.length >= 8)               score++;
-  if (/[A-Z]/.test(p))             score++;
-  if (/[a-z]/.test(p))             score++;
-  if (/[0-9]/.test(p))             score++;
-  if (/[^A-Za-z0-9]/.test(p))      score++;
-  if (score <= 2) return { score, label: 'Weak',   color: 'bg-destructive' };
+  if (p.length >= 8) score++;
+  if (/[A-Z]/.test(p)) score++;
+  if (/[a-z]/.test(p)) score++;
+  if (/[0-9]/.test(p)) score++;
+  if (/[^A-Za-z0-9]/.test(p)) score++;
+  if (score <= 2) return { score, label: 'Weak', color: 'bg-destructive' };
   if (score <= 3) return { score, label: 'Medium', color: 'bg-yellow-500' };
   return { score, label: 'Strong', color: 'bg-green-500' };
 }
@@ -45,7 +45,7 @@ const pwSchema = z
   .regex(/[^A-Za-z0-9]/, 'Must include special character');
 
 const adminSchema = z.object({
-  password:        pwSchema,
+  password: pwSchema,
   confirmPassword: z.string(),
 }).refine((d) => d.password === d.confirmPassword, {
   path: ['confirmPassword'],
@@ -53,18 +53,18 @@ const adminSchema = z.object({
 });
 
 const engineerSchema = z.object({
-  name:            z.string().min(2, 'Name required'),
-  username:        z.string().min(2, 'Username required').regex(/^[a-z0-9_]+$/, 'Lowercase, numbers, underscores only'),
-  email:           z.string().email('Valid email required'),
-  mobile:          z.string().min(10, '10-digit mobile required'),
-  password:        pwSchema,
+  name: z.string().min(2, 'Name required'),
+  username: z.string().min(2, 'Username required').regex(/^[a-z0-9_]+$/, 'Lowercase, numbers, underscores only'),
+  email: z.string().email('Valid email required'),
+  mobile: z.string().min(10, '10-digit mobile required'),
+  password: pwSchema,
   confirmPassword: z.string(),
 }).refine((d) => d.password === d.confirmPassword, {
   path: ['confirmPassword'],
   message: 'Passwords do not match',
 });
 
-type AdminForm    = z.infer<typeof adminSchema>;
+type AdminForm = z.infer<typeof adminSchema>;
 type EngineerForm = z.infer<typeof engineerSchema>;
 
 type Step = 'admin' | 'engineer' | 'done';
@@ -72,9 +72,9 @@ type Step = 'admin' | 'engineer' | 'done';
 // ── component ──────────────────────────────────────────────────────────────
 export default function SetupWizard() {
   const navigate = useNavigate();
-  const [step, setStep]       = useState<Step>('admin');
+  const [step, setStep] = useState<Step>('admin');
   const [loading, setLoading] = useState(false);
-  const [showPw, setShowPw]   = useState<Record<string, boolean>>({});
+  const [showPw, setShowPw] = useState<Record<string, boolean>>({});
   const toggle = (k: string) => setShowPw((p) => ({ ...p, [k]: !p[k] }));
 
   // ── Admin form ────────────────────────────────────────────────────────
@@ -97,22 +97,22 @@ export default function SetupWizard() {
         await usersApi.updatePasswordHash(existing.id, hash);
       } else {
         await usersApi.create({
-          id:                     crypto.randomUUID(),
-          username:               'admin',
-          email:                  'superadmin@sectore.com',
-          name:                   'Super Admin',
-          role:                   'superadmin',
-          employee_code:          'SA-0001',
-          password_hash:          hash,
-          status:                 'Active',
-          department:             null,
-          designation:            null,
-          mobile:                 '',
-          profile_photo:          null,
-          avatar_url:             null,
+          id: crypto.randomUUID(),
+          username: 'admin',
+          email: 'superadmin@sectore.com',
+          name: 'Super Admin',
+          role: 'superadmin',
+          employee_code: 'SA-0001',
+          password_hash: hash,
+          status: 'Active',
+          department: null,
+          designation: null,
+          mobile: '',
+          profile_photo: null,
+          avatar_url: null,
           require_password_change: false,
-          last_login:             null,
-          company_id:             'sectore-001',
+          last_login: null,
+          company_id: 'sectore-001',
         });
       }
       toast.success('Super Admin account created');
@@ -143,22 +143,22 @@ export default function SetupWizard() {
       const hash = await hashPassword(data.password);
       const code = await usersApi.generateCode('engineer');
       await usersApi.create({
-        id:                     crypto.randomUUID(),
-        username:               data.username.toLowerCase(),
-        email:                  data.email,
-        name:                   data.name,
-        role:                   'engineer',
-        employee_code:          code,
-        password_hash:          hash,
-        status:                 'Active',
-        department:             null,
-        designation:            null,
-        mobile:                 data.mobile,
-        profile_photo:          null,
-        avatar_url:             null,
+        id: crypto.randomUUID(),
+        username: data.username.toLowerCase(),
+        email: data.email,
+        name: data.name,
+        role: 'engineer',
+        employee_code: code,
+        password_hash: hash,
+        status: 'Active',
+        department: null,
+        designation: null,
+        mobile: data.mobile,
+        profile_photo: null,
+        avatar_url: null,
         require_password_change: false,
-        last_login:             null,
-        company_id:             'sectore-001',
+        last_login: null,
+        company_id: 'sectore-001',
       });
       toast.success(`Engineer ${data.name} created`);
       await finalize();
@@ -199,7 +199,7 @@ export default function SetupWizard() {
           <div className="flex items-center justify-center gap-2 pt-2">
             {(['admin', 'engineer', 'done'] as Step[]).map((s, i) => (
               <React.Fragment key={s}>
-                <div className={`h-2 w-2 rounded-full transition-colors ${step === s ? 'bg-primary' : (i < ['admin','engineer','done'].indexOf(step) ? 'bg-primary/40' : 'bg-muted')}`} />
+                <div className={`h-2 w-2 rounded-full transition-colors ${step === s ? 'bg-primary' : (i < ['admin', 'engineer', 'done'].indexOf(step) ? 'bg-primary/40' : 'bg-muted')}`} />
                 {i < 2 && <div className="h-px w-8 bg-muted" />}
               </React.Fragment>
             ))}
@@ -239,7 +239,7 @@ export default function SetupWizard() {
                   {adminPw && (
                     <div className="space-y-1">
                       <div className="flex gap-1">
-                        {[1,2,3,4,5].map((n) => (
+                        {[1, 2, 3, 4, 5].map((n) => (
                           <div key={n} className={`h-1 flex-1 rounded-full transition-colors ${n <= adminStrength.score ? adminStrength.color : 'bg-muted'}`} />
                         ))}
                       </div>
@@ -337,7 +337,7 @@ export default function SetupWizard() {
                   </div>
                   {engPw && (
                     <div className="flex gap-1 mt-1">
-                      {[1,2,3,4,5].map((n) => (
+                      {[1, 2, 3, 4, 5].map((n) => (
                         <div key={n} className={`h-1 flex-1 rounded-full transition-colors ${n <= engStrength.score ? engStrength.color : 'bg-muted'}`} />
                       ))}
                     </div>

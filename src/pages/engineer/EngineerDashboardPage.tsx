@@ -18,6 +18,7 @@ import type { AMCVisitSchedule } from '@/types/amc';
 import { StatusCard } from '@/components/shared/StatusCard';
 import { AttendanceStatusBadge } from '@/components/engineer/EngineerBadges';
 import { OfflineBanner } from '@/components/engineer/OfflineBanner';
+import { LiveAttendanceShiftWidget } from '@/components/engineer/LiveAttendanceShiftWidget';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,11 +40,13 @@ export default function EngineerDashboardPage() {
   const [odomPhotos,    setOdomPhotos]    = useState<{ morning?: OdometerPhoto; evening?: OdometerPhoto }>({});
   const [dailyReport,   setDailyReport]   = useState<DailyReport | null>(null);
   const [upcomingVisits, setUpcomingVisits] = useState<AMCVisitSchedule[]>([]);
+  const [summary, setSummary] = useState<{ totalDays: number; totalHours: number; avgHours: number } | null>(null);
   const company = companyProfileService.get();
 
   useEffect(() => {
     if (!engineerId) return;
     attendanceService.getTodayRecord(engineerId).then(setAttendance).catch(() => {});
+    attendanceService.getSummary(engineerId).then(setSummary).catch(() => {});
     bikeService.getAssignedBike(engineerId).then(setBike).catch(() => {});
     odometerService.getTodayPhotos(engineerId).then(setOdomPhotos).catch(() => {});
     dailyReportService.getTodayReport(engineerId).then(setDailyReport).catch(() => {});
@@ -103,47 +106,11 @@ export default function EngineerDashboardPage() {
 
       <OfflineBanner />
 
-      {/* ── Attendance Card ──────────────────────────────── */}
-      <Card className={
-        checkedIn  ? 'border-green-500/40 bg-green-500/5' :
-        checkedOut ? 'border-border'                       :
-        'border-amber-400/40 bg-amber-400/5'
-      }>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="text-sm font-semibold text-foreground">Attendance</span>
-                {attendance
-                  ? <AttendanceStatusBadge status={attendance.status} />
-                  : <Badge variant="outline" className="text-xs bg-amber-400/10 text-amber-600 border-amber-400/20">Not Checked In</Badge>
-                }
-              </div>
-              {attendance && (
-                <p className="text-xs text-muted-foreground">
-                  In: {fmtTime(attendance.checkInTime)}
-                  {attendance.checkOutTime && ` · Out: ${fmtTime(attendance.checkOutTime)}`}
-                  {attendance.workingHours != null && ` · ${attendance.workingHours.toFixed(1)}h`}
-                </p>
-              )}
-            </div>
-            {!checkedIn && !checkedOut && (
-              <Button size="sm" className="shrink-0 min-h-[40px] px-4" onClick={() => navigate('/engineer/attendance/checkin')}>
-                <LogIn size={15} className="mr-1" /> Check In
-              </Button>
-            )}
-            {checkedIn && (
-              <Button
-                size="sm" variant="outline"
-                className="shrink-0 min-h-[40px] px-4"
-                onClick={() => navigate('/engineer/daily-report')}
-              >
-                <LogOut size={15} className="mr-1" /> Check Out
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* ── Attendance Shift Live Widget (iOS / Zomato-Swiggy Style) ── */}
+      <LiveAttendanceShiftWidget
+        attendance={attendance}
+        monthlyPresentDays={summary?.totalDays || 1}
+      />
 
       {/* ── Status Widgets Row ───────────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
@@ -271,57 +238,58 @@ export default function EngineerDashboardPage() {
       <div>
         <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Quick Actions</p>
         <div className="grid grid-cols-3 gap-2">
-          {/* Check In */}
-          {!checkedIn && !checkedOut && (
-            <Button size="lg" className="h-14 flex-col gap-1 text-xs" onClick={() => navigate('/engineer/attendance/checkin')}>
-              <LogIn size={18} />Check In
-            </Button>
-          )}
           {/* My Tasks */}
-          <Button size="lg" variant="outline" className="h-14 flex-col gap-1 text-xs" onClick={() => navigate('/engineer/tasks')}>
-            <ClipboardList size={18} />My Tasks
+          <Button size="lg" variant="outline" className="h-14 flex-col gap-1 text-xs rounded-xl" onClick={() => navigate('/engineer/tasks')}>
+            <ClipboardList size={18} className="text-primary" />My Tasks
           </Button>
           {/* Morning Odometer */}
           <Button
             size="lg"
-            variant={odomPhotos.morning ? 'outline' : 'default'}
-            className="h-14 flex-col gap-1 text-xs"
+            variant="outline"
+            className="h-14 flex-col gap-1 text-xs rounded-xl"
             onClick={() => navigate('/engineer/odometer?type=morning')}
           >
-            <Camera size={18} />
+            <Camera size={18} className={odomPhotos.morning ? 'text-emerald-500' : 'text-primary'} />
             {odomPhotos.morning ? 'Morning ✓' : 'Morning Odo'}
           </Button>
           {/* Evening Odometer */}
           <Button
             size="lg"
-            variant={odomPhotos.evening ? 'outline' : 'default'}
-            className="h-14 flex-col gap-1 text-xs"
+            variant="outline"
+            className="h-14 flex-col gap-1 text-xs rounded-xl"
             onClick={() => navigate('/engineer/odometer?type=evening')}
           >
-            <Camera size={18} />
+            <Camera size={18} className={odomPhotos.evening ? 'text-emerald-500' : 'text-primary'} />
             {odomPhotos.evening ? 'Evening ✓' : 'Evening Odo'}
           </Button>
           {/* Daily Report */}
           <Button
             size="lg"
-            variant={dailyReport ? 'outline' : checkedIn ? 'default' : 'outline'}
-            className="h-14 flex-col gap-1 text-xs"
+            variant="outline"
+            className="h-14 flex-col gap-1 text-xs rounded-xl"
             onClick={() => navigate('/engineer/daily-report')}
           >
-            <FileText size={18} />
+            <FileText size={18} className={dailyReport ? 'text-emerald-500' : 'text-primary'} />
             {dailyReport ? 'Report ✓' : 'Daily Report'}
           </Button>
-          {/* Check Out */}
-          {checkedIn && (
-            <Button
-              size="lg"
-              variant={canCheckOut ? 'default' : 'outline'}
-              className="h-14 flex-col gap-1 text-xs"
-              onClick={() => navigate('/engineer/daily-report')}
-            >
-              <LogOut size={18} />Check Out
-            </Button>
-          )}
+          {/* My Bike */}
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-14 flex-col gap-1 text-xs rounded-xl"
+            onClick={() => navigate('/engineer/bike')}
+          >
+            <BikeIcon size={18} className="text-primary" />My Bike
+          </Button>
+          {/* Attendance History */}
+          <Button
+            size="lg"
+            variant="outline"
+            className="h-14 flex-col gap-1 text-xs rounded-xl"
+            onClick={() => navigate('/engineer/attendance/history')}
+          >
+            <Clock size={18} className="text-primary" />Attendance
+          </Button>
         </div>
       </div>
 
