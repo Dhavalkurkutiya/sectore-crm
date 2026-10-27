@@ -21,7 +21,7 @@ import {
   Users, Server, ClipboardList, CheckCircle2, Clock, AlertTriangle,
   Activity, Wrench, Building2, Package, UserX, Plus, FileText,
 } from 'lucide-react';
-import { SkeletonCard } from '@/components/shared/Skeleton';
+import { SkeletonCard, Skeleton } from '@/components/shared/Skeleton';
 
 /* ── Admin counter shape ───────────────────────────────────── */
 interface AdminCounts {
@@ -35,7 +35,23 @@ interface TaskStats {
   overdue: number; emergency: number; waitingParts: number; waitingCustomer: number;
 }
 
-function TaskStatsRow({ stats, navigate }: { stats: TaskStats; navigate: (path: string) => void }) {
+function TaskStatsRow({ stats, navigate }: { stats: TaskStats | null; navigate: (path: string) => void }) {
+  if (!stats) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {Array.from({ length: 7 }).map((_, i) => (
+          <div key={i} className="flex flex-col gap-2 p-4 rounded-lg border border-border bg-card">
+            <div className="flex items-center justify-between">
+              <Skeleton className="h-4 w-4 rounded-md" />
+              <Skeleton className="h-6 w-10 rounded-md" />
+            </div>
+            <Skeleton className="h-3 w-24 rounded-md" />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   const items = [
     { label: "Today's Tasks",    value: stats.todayTotal,      icon: ClipboardList, color: 'text-primary',     filter: '/tasks' },
     { label: 'Pending',          value: stats.pending,         icon: Clock,         color: 'text-warning',     filter: '/tasks?status=Pending' },
@@ -86,29 +102,33 @@ function AdminDashboard({
           title="Total Customers"
           value={counts ? String(counts.totalCustomers) : '—'}
           icon={Building2} variant="primary"
+          loading={!counts}
         />
         <StatusCard
           title="Active Engineers"
           value={counts ? String(counts.totalEngineers) : '—'}
           icon={Wrench} variant="default"
+          loading={!counts}
         />
         <StatusCard
           title="Assets Managed"
           value={counts ? String(counts.totalAssets) : '—'}
           icon={Server} variant="default"
+          loading={!counts}
         />
         <StatusCard
           title="Open Tickets"
           value={counts ? String(counts.openTickets + counts.inProgressTickets) : '—'}
           icon={ClipboardList} variant="warning"
+          loading={!counts}
         />
       </div>
 
       {/* Secondary counters row */}
       <div className="grid grid-cols-3 gap-4">
-        <StatusCard title="In Progress" value={counts ? String(counts.inProgressTickets) : '—'} icon={Activity} variant="default" />
-        <StatusCard title="Completed Tickets" value={counts ? String(counts.completedTickets) : '—'} icon={CheckCircle2} variant="success" />
-        <StatusCard title="Active AMC" value={counts ? String(counts.activeAMC) : '—'} icon={FileText} variant="default" />
+        <StatusCard title="In Progress" value={counts ? String(counts.inProgressTickets) : '—'} icon={Activity} variant="default" loading={!counts} />
+        <StatusCard title="Completed Tickets" value={counts ? String(counts.completedTickets) : '—'} icon={CheckCircle2} variant="success" loading={!counts} />
+        <StatusCard title="Active AMC" value={counts ? String(counts.activeAMC) : '—'} icon={FileText} variant="default" loading={!counts} />
       </div>
 
       {/* AMC Summary strip */}
@@ -133,7 +153,11 @@ function AdminDashboard({
                 className="flex flex-col gap-2 p-4 rounded-lg border border-border bg-card hover:bg-muted/60 hover:border-primary/30 transition-colors text-left cursor-pointer">
                 <div className="flex items-center justify-between">
                   <FileText size={14} className={item.color} />
-                  <span className={`text-2xl font-bold ${item.color}`}>{item.value}</span>
+                  {!amcStats ? (
+                    <Skeleton className="h-7 w-10 rounded-md" />
+                  ) : (
+                    <span className={`text-2xl font-bold ${item.color}`}>{item.value}</span>
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground font-medium leading-tight">{item.label}</p>
               </button>

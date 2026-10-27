@@ -12,7 +12,7 @@ interface SkeletonProps {
 export function Skeleton({ className }: SkeletonProps) {
   return (
     <div
-      className={cn('animate-pulse rounded-md bg-muted', className)}
+      className={cn('animate-pulse rounded-md bg-muted/80', className)}
     />
   );
 }
@@ -27,6 +27,43 @@ export function SkeletonCard({ className }: SkeletonProps) {
       </div>
       <Skeleton className="h-8 w-20" />
       <Skeleton className="h-3 w-32" />
+    </div>
+  );
+}
+
+/** Skeleton for Sage/Attendance-style 4-card metric */
+export function SkeletonKPIStatCard({ className }: SkeletonProps) {
+  return (
+    <div className={cn('bg-card border border-border/80 rounded-2xl p-4 flex flex-col gap-2 shadow-xs', className)}>
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-7 w-7 rounded-lg" />
+        <Skeleton className="h-4 w-20 rounded-md" />
+      </div>
+      <Skeleton className="h-8 w-16 rounded-md mt-1" />
+      <Skeleton className="h-3 w-28 rounded-md" />
+    </div>
+  );
+}
+
+/** Skeleton for task card */
+export function SkeletonTaskCard({ className }: SkeletonProps) {
+  return (
+    <div className={cn('rounded-2xl border border-border/80 bg-card p-4 flex flex-col gap-2.5 shadow-xs', className)}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="space-y-2 flex-1">
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-3.5 w-20 rounded-md" />
+            <Skeleton className="h-4 w-16 rounded-md" />
+          </div>
+          <Skeleton className="h-4 w-3/4 rounded-md" />
+        </div>
+        <Skeleton className="h-4 w-4 rounded-md shrink-0" />
+      </div>
+      <div className="flex items-center gap-2 pt-1">
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-5 w-14 rounded-full" />
+      </div>
+      <Skeleton className="h-3 w-24 rounded-md pt-0.5" />
     </div>
   );
 }

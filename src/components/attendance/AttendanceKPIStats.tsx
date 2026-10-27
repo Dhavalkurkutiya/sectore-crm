@@ -1,12 +1,14 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { CheckCircle2, Clock, CalendarDays, UserX } from 'lucide-react';
+import { Skeleton } from '@/components/shared/Skeleton';
 import type { AttendanceKPIStatsData } from './types';
 
 interface AttendanceKPIStatsProps {
   stats: AttendanceKPIStatsData;
+  loading?: boolean;
 }
 
-export function AttendanceKPIStats({ stats }: AttendanceKPIStatsProps) {
+export function AttendanceKPIStats({ stats, loading = false }: AttendanceKPIStatsProps) {
   const cards = [
     {
       title: 'Present Today',
@@ -61,12 +63,21 @@ export function AttendanceKPIStats({ stats }: AttendanceKPIStatsProps) {
                 </span>
               </div>
               <div className="space-y-0.5 sm:space-y-1">
-                <div className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight font-mono">
-                  {c.value}
-                </div>
-                <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate">
-                  {c.subtext}
-                </p>
+                {loading ? (
+                  <>
+                    <Skeleton className="h-8 w-16 rounded-md" />
+                    <Skeleton className="h-3 w-28 rounded-md mt-1" />
+                  </>
+                ) : (
+                  <>
+                    <div className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight font-mono">
+                      {c.value}
+                    </div>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground font-medium truncate">
+                      {c.subtext}
+                    </p>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>

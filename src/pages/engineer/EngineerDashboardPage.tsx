@@ -210,16 +210,16 @@ export default function EngineerDashboardPage() {
       {/* ── Task Stats ───────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3">
         <div className="cursor-pointer" onClick={() => navigate('/engineer/tasks?filter=pending')}>
-          <StatusCard title="Pending" value={stats?.todayPending ?? '—'} icon={ClipboardList} variant="warning" />
+          <StatusCard title="Pending" value={stats?.todayPending ?? '—'} icon={ClipboardList} variant="warning" loading={!stats} />
         </div>
         <div className="cursor-pointer" onClick={() => navigate('/engineer/tasks?filter=working')}>
-          <StatusCard title="Working" value={stats?.todayWorking ?? '—'} icon={Wrench} variant="primary" />
+          <StatusCard title="Working" value={stats?.todayWorking ?? '—'} icon={Wrench} variant="primary" loading={!stats} />
         </div>
         <div className="cursor-pointer" onClick={() => navigate('/engineer/tasks?filter=completed')}>
-          <StatusCard title="Completed" value={stats?.todayCompleted ?? '—'} icon={CheckCircle2} variant="success" />
+          <StatusCard title="Completed" value={stats?.todayCompleted ?? '—'} icon={CheckCircle2} variant="success" loading={!stats} />
         </div>
         <div className="cursor-pointer" onClick={() => navigate('/engineer/tasks?filter=overdue')}>
-          <StatusCard title="Overdue" value={stats?.todayOverdue ?? '—'} icon={AlertTriangle} variant="danger" />
+          <StatusCard title="Overdue" value={stats?.todayOverdue ?? '—'} icon={AlertTriangle} variant="danger" loading={!stats} />
         </div>
       </div>
 

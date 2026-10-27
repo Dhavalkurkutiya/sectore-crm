@@ -5,6 +5,7 @@
 import { cn } from '@/lib/utils';
 import { TrendingDown, TrendingUp } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { Skeleton } from '@/components/shared/Skeleton';
 
 interface StatusCardProps {
   title: string;
@@ -17,6 +18,8 @@ interface StatusCardProps {
   trendLabel?: string;
   variant?: 'default' | 'primary' | 'success' | 'warning' | 'danger';
   className?: string;
+  /** Show skeleton loading placeholder */
+  loading?: boolean;
 }
 
 const variantStyles: Record<NonNullable<StatusCardProps['variant']>, string> = {
@@ -44,6 +47,7 @@ export function StatusCard({
   trendLabel,
   variant = 'default',
   className,
+  loading = false,
 }: StatusCardProps) {
   const isPositive = trend !== undefined && trend > 0;
   const isNegative = trend !== undefined && trend < 0;
@@ -66,13 +70,21 @@ export function StatusCard({
       </div>
 
       <div className="flex flex-col gap-1">
-        <p className="text-2xl font-bold text-foreground tracking-tight">{value}</p>
+        {loading || value === '—' ? (
+          <Skeleton className="h-8 w-20 rounded-md" />
+        ) : (
+          <p className="text-2xl font-bold text-foreground tracking-tight">{value}</p>
+        )}
         {subtitle && (
-          <p className="text-xs text-muted-foreground">{subtitle}</p>
+          loading ? (
+            <Skeleton className="h-3 w-28 rounded-md mt-0.5" />
+          ) : (
+            <p className="text-xs text-muted-foreground">{subtitle}</p>
+          )
         )}
       </div>
 
-      {trend !== undefined && (
+      {trend !== undefined && !loading && (
         <div className="flex items-center gap-1">
           {isPositive && <TrendingUp size={13} className="text-success" />}
           {isNegative && <TrendingDown size={13} className="text-destructive" />}

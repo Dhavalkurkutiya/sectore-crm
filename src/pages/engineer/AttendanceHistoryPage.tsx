@@ -36,6 +36,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton, SkeletonKPIStatCard } from '@/components/shared/Skeleton';
 import {
   ChevronLeft, ChevronRight, Clock, Calendar, MapPin, Loader2,
   CheckCircle2, XCircle, CalendarDays, TrendingUp, Download,
@@ -220,7 +221,7 @@ function AdminAttendanceView() {
       </div>
 
       {/* Real Dynamic KPI Stats */}
-      <AttendanceKPIStats stats={dynamicKPIStats} />
+      <AttendanceKPIStats stats={dynamicKPIStats} loading={loading} />
 
       {/* Filter bar with week navigator & Excel export */}
       <AttendanceFilterBar
@@ -376,9 +377,46 @@ function EngineerAttendanceView() {
       </div>
 
       {loading ? (
-        <div className="h-64 flex items-center justify-center rounded-2xl border border-border bg-card">
-          <Loader2 className="animate-spin text-primary" size={24} />
-        </div>
+        <>
+          {/* ── Skeleton 4 Stat Cards ─────────────── */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <SkeletonKPIStatCard />
+            <SkeletonKPIStatCard />
+            <SkeletonKPIStatCard />
+            <SkeletonKPIStatCard />
+          </div>
+
+          {/* ── Skeleton Attendance % Progress ────── */}
+          <Card className="rounded-2xl border border-border/80 shadow-sm">
+            <CardContent className="p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-4 w-4 rounded-full" />
+                  <Skeleton className="h-4 w-40 rounded-md" />
+                </div>
+                <Skeleton className="h-5 w-12 rounded-md" />
+              </div>
+              <Skeleton className="h-3 w-full rounded-full" />
+              <Skeleton className="h-3 w-48 rounded-md" />
+            </CardContent>
+          </Card>
+
+          {/* ── Skeleton Calendar Card ────────────── */}
+          <Card className="rounded-2xl border border-border/80 shadow-sm overflow-hidden">
+            <CardContent className="p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-8 w-8 rounded-lg" />
+                <Skeleton className="h-5 w-32 rounded-md" />
+                <Skeleton className="h-8 w-8 rounded-lg" />
+              </div>
+              <div className="grid grid-cols-7 gap-1.5 pt-2">
+                {Array.from({ length: 14 }).map((_, i) => (
+                  <Skeleton key={i} className="h-12 rounded-xl" />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </>
       ) : (
         <>
           {/* ── My 4 Personal Stat Cards ─────────────── */}
