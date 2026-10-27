@@ -228,11 +228,19 @@ export default function AddTaskPage() {
     defaultValues: {
       taskType: 'Breakdown', priority: 'Medium',
       issueTitle: '', issueDescription: '',
-      engineerId: '', expectedVisitDate: '', expectedVisitTime: '',
+      engineerId: user?.role === 'engineer' ? user.id : '',
+      expectedVisitDate: '', expectedVisitTime: '',
       internalNotes: '', remarks: '', customerNotes: '',
     },
   });
   const wv = form.watch();
+
+  /* Auto-assign current engineer if logged in as engineer */
+  useEffect(() => {
+    if (user?.role === 'engineer' && user.id && !form.getValues('engineerId')) {
+      form.setValue('engineerId', user.id);
+    }
+  }, [user, form]);
 
   /* ── Pre-fill from URL params ── */
   useEffect(() => {
@@ -282,6 +290,7 @@ export default function AddTaskPage() {
     if (!selectedAsset)    { toast.error('Please select an asset.');   setMobileStep(3); return; }
     setSubmitting(true);   // disable button immediately — no blocking spinner
     const eng = ENGINEERS.find((e) => e.id === values.engineerId);
+    const assignedEngineerName = eng?.name ?? (user?.role === 'engineer' && values.engineerId === user?.id ? user.name : undefined);
     taskService.create({
       customerId:        selectedCustomer.id,
       assetId:           selectedAsset.id,
@@ -290,7 +299,7 @@ export default function AddTaskPage() {
       status:            'Pending',
       issueDescription:  `${values.issueTitle}: ${values.issueDescription}`,
       engineerId:        values.engineerId || undefined,
-      engineerName:      eng?.name,
+      engineerName:      assignedEngineerName,
       expectedVisitDate: values.expectedVisitDate || undefined,
       expectedVisitTime: values.expectedVisitTime || undefined,
       remarks:           values.remarks || undefined,
@@ -299,7 +308,11 @@ export default function AddTaskPage() {
       createdBy,
     }, createdBy).then((task) => {
       toast.success(`Service request ${task.taskNumber} created successfully.`);
-      navigate(`/tasks/${task.id}`);
+      if (user?.role === 'engineer') {
+        navigate(`/engineer/tasks/${task.id}`);
+      } else {
+        navigate(`/tasks/${task.id}`);
+      }
     }).catch(() => {
       toast.error('Failed to create request. Please try again.');
       setSubmitting(false);

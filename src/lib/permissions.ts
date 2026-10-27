@@ -58,7 +58,7 @@ export const rolePermissions: RolePermissions = {
   engineer: [
     'dashboard:view',
     'search:use',
-    'tasks:view', 'tasks:edit',
+    'tasks:view', 'tasks:create', 'tasks:edit',
     'customers:view',
     'assets:view',
   ],

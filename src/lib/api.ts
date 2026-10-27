@@ -540,7 +540,8 @@ function taskToRow(data: Partial<TaskFormData & Task>) {
 export const tasksApi = {
   async list(opts?: {
     status?: string[]; priority?: string[]; taskType?: string[];
-    engineerId?: string; customerId?: string; assetId?: string;
+    engineerId?: string; engineerIds?: string[]; engineerName?: string; createdBy?: string;
+    customerId?: string; assetId?: string;
     dateFrom?: string; dateTo?: string; includeCancelled?: boolean;
     search?: string; limit?: number; offset?: number;
   }): Promise<Task[]> {
@@ -548,7 +549,15 @@ export const tasksApi = {
     if (!opts?.includeCancelled) q = q.neq('status', 'Cancelled');
     if (opts?.customerId)  q = q.eq('customer_id', opts.customerId);
     if (opts?.assetId)     q = q.eq('asset_id', opts.assetId);
-    if (opts?.engineerId)  q = q.eq('engineer_id', opts.engineerId);
+    if (opts?.engineerIds?.length) {
+      const valid = opts.engineerIds.filter(Boolean);
+      if (valid.length === 1) q = q.eq('engineer_id', valid[0]);
+      else if (valid.length > 1) q = q.in('engineer_id', valid);
+    } else if (opts?.engineerId) {
+      q = q.eq('engineer_id', opts.engineerId);
+    }
+    if (opts?.engineerName) q = q.eq('engineer_name', opts.engineerName);
+    if (opts?.createdBy)    q = q.eq('created_by', opts.createdBy);
     if (opts?.status?.length)   q = q.in('status', opts.status);
     if (opts?.priority?.length) q = q.in('priority', opts.priority);
     if (opts?.taskType?.length) q = q.in('task_type', opts.taskType);

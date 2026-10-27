@@ -21,6 +21,8 @@ interface EngineerContextValue {
   /** engineer_profiles.id — the FK used by attendance, fuel, odometer, bike, etc. */
   engineerId: string;
   engineerName: string;
+  /** app_users.id — the user id from auth and tasks.engineer_id */
+  userId: string;
   /** Full resolved profile (includes email). Null while loading or if not an engineer. */
   resolved: ResolvedEngineer | null;
   /** True while the first resolution is in-flight */
@@ -32,6 +34,7 @@ interface EngineerContextValue {
 const EngineerContext = createContext<EngineerContextValue>({
   engineerId:   '',
   engineerName: '',
+  userId:       '',
   resolved:     null,
   loading:      false,
   error:        null,
@@ -99,7 +102,8 @@ export function EngineerProvider({ children }: { children: ReactNode }) {
   return (
     <EngineerContext.Provider value={{
       engineerId:   resolved?.engineerId   ?? '',
-      engineerName: resolved?.engineerName ?? '',
+      engineerName: resolved?.engineerName ?? user?.name ?? '',
+      userId:       resolved?.userId       ?? user?.id   ?? '',
       resolved,
       loading,
       error,

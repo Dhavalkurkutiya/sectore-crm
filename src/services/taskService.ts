@@ -12,7 +12,8 @@ import { tasksApi } from '@/lib/api';
 export const taskService = {
   async list(opts?: {
     search?: string; status?: string[]; priority?: string[]; taskType?: string[];
-    engineerId?: string; customerId?: string; assetId?: string;
+    engineerId?: string; engineerIds?: string[]; engineerName?: string; createdBy?: string;
+    customerId?: string; assetId?: string;
     dateFrom?: string; dateTo?: string; includeCancelled?: boolean;
     limit?: number; offset?: number;
   }): Promise<Task[]> {

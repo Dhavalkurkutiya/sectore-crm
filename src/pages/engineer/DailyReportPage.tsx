@@ -11,8 +11,9 @@ import { useEngineerContext } from '@/contexts/EngineerContext';
 import { dailyReportService } from '@/services/dailyReportService';
 import { attendanceService } from '@/services/attendanceService';
 import { odometerService } from '@/services/odometerService';
+import { engineerService } from '@/services/engineerService';
 import type { DailyReport, Attendance, OdometerPhoto } from '@/types/engineer';
-import { tasksApi } from '@/lib/api';
+import type { Task } from '@/types/task';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -26,7 +27,7 @@ import {
 export default function DailyReportPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { engineerId } = useEngineerContext();
+  const { engineerId, userId, engineerName } = useEngineerContext();
 
   const [existing,    setExisting]    = useState<DailyReport | null>(null);
   const [attendance,  setAttendance]  = useState<Attendance | null>(null);
@@ -54,18 +55,22 @@ export default function DailyReportPage() {
   const todayLabel = new Date().toLocaleDateString([], { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
   useEffect(() => {
-    if (!engineerId) return;
+    const eid = engineerId || user?.id;
+    if (!eid) return;
+    const uid = userId || user?.id;
+    const uname = engineerName || user?.name;
+
     setLoading(true);
     Promise.all([
-      dailyReportService.getTodayReport(engineerId),
-      attendanceService.getTodayRecord(engineerId),
-      odometerService.getTodayPhotos(engineerId),
-      tasksApi.list({ engineerId }).catch(() => [] as { status: string }[]),
+      dailyReportService.getTodayReport(eid),
+      attendanceService.getTodayRecord(eid),
+      odometerService.getTodayPhotos(eid),
+      engineerService.getAssignedTasks(eid, { userId: uid, userName: uname }).catch(() => [] as Task[]),
     ]).then(([report, att, odo, tasks]) => {
       setExisting(report);
       setAttendance(att);
       setOdoPhotos(odo);
-      const completed = (tasks ?? []).filter((t) => t.status === 'completed').length;
+      const completed = (tasks ?? []).filter((t) => t.status === 'Completed' || t.status === 'Closed').length;
       setTaskStats({ total: (tasks ?? []).length, completed, pending: (tasks ?? []).length - completed });
       if (report) {
         setPartsRequired(report.partsRequired    ?? '');

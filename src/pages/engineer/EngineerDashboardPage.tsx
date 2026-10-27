@@ -31,7 +31,7 @@ import {
 export default function EngineerDashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { engineerId } = useEngineerContext();
+  const { engineerId, userId, engineerName } = useEngineerContext();
 
   const [stats,         setStats]         = useState<EngineerDashboardStats | null>(null);
   const [attendance,    setAttendance]    = useState<Attendance | null>(null);
@@ -44,16 +44,20 @@ export default function EngineerDashboardPage() {
   const company = companyProfileService.get();
 
   useEffect(() => {
-    if (!engineerId) return;
-    attendanceService.getTodayRecord(engineerId).then(setAttendance).catch(() => {});
-    attendanceService.getSummary(engineerId).then(setSummary).catch(() => {});
-    bikeService.getAssignedBike(engineerId).then(setBike).catch(() => {});
-    odometerService.getTodayPhotos(engineerId).then(setOdomPhotos).catch(() => {});
-    dailyReportService.getTodayReport(engineerId).then(setDailyReport).catch(() => {});
-    engineerService.getDashboardStats(engineerId).then(setStats).catch(() => {});
-    engineerService.getProfile(engineerId).then(setProfile).catch(() => {});
+    const eid = engineerId || user?.id;
+    if (!eid) return;
+    const uid = userId || user?.id;
+    const uname = engineerName || user?.name;
+
+    attendanceService.getTodayRecord(eid).then(setAttendance).catch(() => {});
+    attendanceService.getSummary(eid).then(setSummary).catch(() => {});
+    bikeService.getAssignedBike(eid).then(setBike).catch(() => {});
+    odometerService.getTodayPhotos(eid).then(setOdomPhotos).catch(() => {});
+    dailyReportService.getTodayReport(eid).then(setDailyReport).catch(() => {});
+    engineerService.getDashboardStats(eid, { userId: uid, userName: uname }).then(setStats).catch(() => {});
+    engineerService.getProfile(eid).then(setProfile).catch(() => {});
     setUpcomingVisits(engineerService.getUpcomingAMCVisits(7).slice(0, 5) as unknown as AMCVisitSchedule[]);
-  }, [engineerId]);
+  }, [engineerId, userId, engineerName, user?.id, user?.name]);
 
   const checkedIn  = attendance?.status === 'checked_in';
   const checkedOut = attendance?.status === 'checked_out';

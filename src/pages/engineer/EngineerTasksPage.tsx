@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layouts/DashboardLayout';
  */
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { useEngineerContext } from '@/contexts/EngineerContext';
 import { engineerService } from '@/services/engineerService';
 import type { Task } from '@/types/task';
@@ -18,7 +19,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Search, ChevronRight, Building2, Cpu, Calendar, SlidersHorizontal, X, ChevronLeft,
+  Search, ChevronRight, Building2, Cpu, Calendar, SlidersHorizontal, X, ChevronLeft, Plus,
 } from 'lucide-react';
 
 type FilterStatus = 'all' | 'pending' | 'working' | 'completed' | 'overdue' | 'emergency';
@@ -43,18 +44,27 @@ const FILTER_LABELS: Record<FilterStatus, string> = {
 
 export default function EngineerTasksPage() {
   const navigate = useNavigate();
-  const { engineerId } = useEngineerContext();
+  const { user } = useAuth();
+  const { engineerId, userId, engineerName } = useEngineerContext();
   const [params] = useSearchParams();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterStatus>((params.get('filter') as FilterStatus) ?? 'all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'amc' | 'chargeable'>('all');
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    if (!engineerId) return;
-    engineerService.getAssignedTasks(engineerId).then(setTasks).catch(() => setTasks([]));
-  }, [engineerId]);
+    const eid = engineerId || user?.id;
+    if (!eid) return;
+    const uid = userId || user?.id;
+    const uname = engineerName || user?.name;
+    setLoading(true);
+    engineerService.getAssignedTasks(eid, { userId: uid, userName: uname })
+      .then(setTasks)
+      .catch(() => setTasks([]))
+      .finally(() => setLoading(false));
+  }, [engineerId, userId, engineerName, user?.id, user?.name]);
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
@@ -92,6 +102,9 @@ export default function EngineerTasksPage() {
         <h1 className="text-lg font-bold text-foreground flex-1 min-w-0 truncate">My Tasks</h1>
         <Button variant="ghost" size="sm" className="h-9 w-9 p-0" onClick={() => setShowFilters(!showFilters)}>
           <SlidersHorizontal size={18} />
+        </Button>
+        <Button size="sm" className="gap-1.5 h-9" onClick={() => navigate('/tasks/new')}>
+          <Plus size={16} /> New Task
         </Button>
       </div>
 
@@ -158,10 +171,19 @@ export default function EngineerTasksPage() {
       <p className="text-xs text-muted-foreground">{filtered.length} task{filtered.length !== 1 ? 's' : ''}</p>
 
       {/* Task cards */}
-      {filtered.length === 0 ? (
+      {loading ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground text-sm">
-            No tasks match the selected filters
+            Loading tasks...
+          </CardContent>
+        </Card>
+      ) : filtered.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground text-sm flex flex-col items-center gap-3">
+            <p>No tasks match the selected filters</p>
+            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => navigate('/tasks/new')}>
+              <Plus size={14} /> Create a Task
+            </Button>
           </CardContent>
         </Card>
       ) : (

@@ -126,8 +126,35 @@ export const engineerService = {
   },
 
   /* ── Assigned Tasks (engineer scope) ───────────────────── */
-  async getAssignedTasks(engineerId: string) {
-    return tasksApi.list({ engineerId, includeCancelled: false });
+  async getAssignedTasks(
+    engineerId: string,
+    options?: { userId?: string; userName?: string; includeCancelled?: boolean }
+  ): Promise<Task[]> {
+    const ids = Array.from(new Set([engineerId, options?.userId].filter(Boolean))) as string[];
+    const includeCancelled = options?.includeCancelled ?? false;
+
+    const promises: Promise<Task[]>[] = [];
+    if (ids.length > 0) {
+      promises.push(tasksApi.list({ engineerIds: ids, includeCancelled }).catch(() => []));
+    }
+    if (options?.userName) {
+      promises.push(tasksApi.list({ engineerName: options.userName, includeCancelled }).catch(() => []));
+      promises.push(tasksApi.list({ createdBy: options.userName, includeCancelled }).catch(() => []));
+    }
+    if (options?.userId && options?.userId !== options?.userName) {
+      promises.push(tasksApi.list({ createdBy: options.userId, includeCancelled }).catch(() => []));
+    }
+
+    const results = await Promise.all(promises);
+    const map = new Map<string, Task>();
+    for (const batch of results) {
+      for (const t of batch) {
+        map.set(t.id, t);
+      }
+    }
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   },
 
   async getTaskById(_engineerId: string, taskId: string) {
@@ -253,18 +280,21 @@ export const engineerService = {
   },
 
   /* ── Dashboard Stats ────────────────────────────────────── */
-  async getDashboardStats(engineerId: string): Promise<EngineerDashboardStats> {
-    const tasks    = await tasksApi.list({ engineerId, includeCancelled: false });
+  async getDashboardStats(
+    engineerId: string,
+    options?: { userId?: string; userName?: string }
+  ): Promise<EngineerDashboardStats> {
+    const tasks    = await this.getAssignedTasks(engineerId, options);
     const todayStr = today();
 
-    const todayPending   = tasks.filter((t) => t.status === 'Pending').length;
-    const todayWorking   = tasks.filter((t) => ['Accepted', 'In Progress', 'In Transit'].includes(t.status)).length;
-    const todayCompleted = tasks.filter((t) => t.status === 'Completed' && (t.completedAt ?? '').startsWith(todayStr)).length;
+    const todayPending   = tasks.filter((t) => t.status === 'Pending' || t.status === 'Assigned').length;
+    const todayWorking   = tasks.filter((t) => ['Accepted', 'On The Way', 'Reached Site', 'Working', 'Waiting Customer', 'Waiting Parts', 'Waiting Vendor', 'In Progress', 'In Transit'].includes(t.status)).length;
+    const todayCompleted = tasks.filter((t) => (t.status === 'Completed' || t.status === 'Closed') && (t.completedAt ?? '').startsWith(todayStr)).length;
     const todayOverdue   = tasks.filter((t) => {
       const due = t.expectedVisitDate ?? t.createdAt;
-      return !['Completed', 'Cancelled'].includes(t.status) && new Date(due) < new Date();
+      return !['Completed', 'Closed', 'Cancelled'].includes(t.status) && new Date(due) < new Date();
     }).length;
-    const todayEmergency = tasks.filter((t) => t.priority === 'Emergency' && !['Completed', 'Cancelled'].includes(t.status)).length;
+    const todayEmergency = tasks.filter((t) => t.priority === 'Emergency' && !['Completed', 'Closed', 'Cancelled'].includes(t.status)).length;
 
     const fuel = await fuelService.getTodayStats(engineerId);
 
@@ -279,13 +309,16 @@ export const engineerService = {
   },
 
   /* ── Task summary for profile ───────────────────────────── */
-  async getTaskSummary(engineerId: string) {
-    const tasks      = await tasksApi.list({ engineerId, includeCancelled: true });
+  async getTaskSummary(
+    engineerId: string,
+    options?: { userId?: string; userName?: string }
+  ) {
+    const tasks      = await this.getAssignedTasks(engineerId, { ...options, includeCancelled: true });
     const monthStart = new Date(); monthStart.setDate(1);
     const completedThisMonth = tasks.filter(
-      (t) => t.status === 'Completed' && new Date(t.completedAt ?? '') >= monthStart
+      (t) => (t.status === 'Completed' || t.status === 'Closed') && new Date(t.completedAt ?? t.updatedAt ?? '') >= monthStart
     ).length;
-    const pending = tasks.filter((t) => !['Completed', 'Cancelled'].includes(t.status)).length;
+    const pending = tasks.filter((t) => !['Completed', 'Closed', 'Cancelled'].includes(t.status)).length;
     return { completedThisMonth, pending, total: tasks.length };
   },
 

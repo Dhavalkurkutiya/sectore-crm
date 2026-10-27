@@ -5,6 +5,7 @@ import { DashboardLayout } from '@/components/layouts/DashboardLayout';
  */
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import { useEngineerContext } from '@/contexts/EngineerContext';
 import { engineerService } from '@/services/engineerService';
 import { attendanceService } from '@/services/attendanceService';
@@ -33,26 +34,31 @@ function InfoRow({ label, value, icon: Icon }: Row) {
 
 export default function EngineerProfilePage() {
   const navigate = useNavigate();
-  const { engineerId } = useEngineerContext();
+  const { user } = useAuth();
+  const { engineerId, userId, engineerName } = useEngineerContext();
   const [profile, setProfile]     = useState<EngineerProfile | null>(null);
   const [bike, setBike]           = useState<Bike | null>(null);
   const [attendance, setAttendance] = useState({ totalDays: 0, totalHours: 0, avgHours: 0 });
   const [taskSummary, setTaskSummary] = useState({ completedThisMonth: 0, pending: 0, total: 0 });
 
   useEffect(() => {
-    if (!engineerId) return;
+    const eid = engineerId || user?.id;
+    if (!eid) return;
+    const uid = userId || user?.id;
+    const uname = engineerName || user?.name;
+
     Promise.all([
-      engineerService.getProfile(engineerId),
-      engineerService.getAssignedBike(engineerId),
-      attendanceService.getSummary(engineerId),
-      engineerService.getTaskSummary(engineerId),
+      engineerService.getProfile(eid),
+      engineerService.getAssignedBike(eid),
+      attendanceService.getSummary(eid),
+      engineerService.getTaskSummary(eid, { userId: uid, userName: uname }),
     ]).then(([p, b, a, ts]) => {
       setProfile(p);
       setBike(b);
       setAttendance(a);
       setTaskSummary(ts);
     }).catch(() => {});
-  }, [engineerId]);
+  }, [engineerId, userId, engineerName, user?.id, user?.name]);
 
   if (!profile) {
     return (
