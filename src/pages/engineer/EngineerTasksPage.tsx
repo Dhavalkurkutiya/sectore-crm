@@ -26,7 +26,7 @@ type FilterStatus = 'all' | 'pending' | 'working' | 'completed' | 'overdue' | 'e
 
 function matchesFilter(task: Task, filter: FilterStatus): boolean {
   if (filter === 'all') return true;
-  if (filter === 'pending') return task.status === 'Pending' || task.status === 'Assigned';
+  if (filter === 'pending') return task.status === 'Pending' || task.status === 'Assigned' || task.status === 'Waiting Parts' || task.status === 'Waiting Customer' || task.status === 'Waiting Vendor';
   if (filter === 'working') return ['Accepted', 'On The Way', 'Reached Site', 'Working', 'Waiting Customer', 'Waiting Parts', 'Waiting Vendor'].includes(task.status);
   if (filter === 'completed') return task.status === 'Completed' || task.status === 'Closed';
   if (filter === 'overdue') {
@@ -208,6 +208,17 @@ export default function EngineerTasksPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <TaskStatusBadge status={t.status} />
                   <TaskPriorityBadge priority={t.priority} />
+                  {t.resolutionStatus && t.status !== 'Completed' && t.status !== 'Closed' && (
+                    <Badge variant="outline" className={`text-[10px] font-semibold px-2 py-0.5 border ${
+                      t.resolutionStatus === 'Parts Required'
+                        ? 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                        : t.resolutionStatus === 'Temporary Fix'
+                        ? 'bg-orange-50 text-orange-800 border-orange-300 dark:bg-orange-950/40 dark:text-orange-300 dark:border-orange-800'
+                        : 'bg-blue-50 text-blue-800 border-blue-300 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800'
+                    }`}>
+                      {t.resolutionStatus}
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground">
                   {t.expectedVisitDate && (

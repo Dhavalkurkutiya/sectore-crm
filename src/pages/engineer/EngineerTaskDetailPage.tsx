@@ -43,7 +43,7 @@ import {
   Building2, Cpu, ClipboardCheck, Camera, Package, PenLine,
   AlertOctagon, CheckCircle2, Clock, RefreshCw, Wrench, Plus,
   Download, Share2, Printer, MessageCircle, ShieldAlert, Save,
-  FileText,
+  FileText, Calendar,
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layouts/DashboardLayout';
 
@@ -148,6 +148,10 @@ export default function EngineerTaskDetailPage() {
   const [customerRemarks, setCustomerRemarks] = useState('');
   const [internalNotes,   setInternalNotes]   = useState('');
   const [resolutionStatus, setResolutionStatus] = useState<WorkCompletion['resolutionStatus']>(undefined);
+  const [partsRequiredText, setPartsRequiredText] = useState('');
+  const [followUpDate, setFollowUpDate]           = useState('');
+  const [followUpTime, setFollowUpTime]           = useState('');
+  const [followUpRemarks, setFollowUpRemarks]     = useState('');
   const [signatureDataUrl, setSignatureDataUrl] = useState('');
   const [isCompleted, setIsCompleted]           = useState(false);
 
@@ -195,7 +199,12 @@ export default function EngineerTaskDetailPage() {
       setCustomerRemarks(wc.customerRemarks ?? '');
       setInternalNotes(wc.internalNotes ?? '');
       if (wc.resolutionStatus) setResolutionStatus(wc.resolutionStatus);
+    } else if (t.resolutionStatus) {
+      setResolutionStatus(t.resolutionStatus);
     }
+    if (t.partsRequired) setPartsRequiredText(t.partsRequired);
+    if (t.followUpDate || t.expectedVisitDate) setFollowUpDate(t.followUpDate || t.expectedVisitDate || '');
+    if (t.expectedVisitTime) setFollowUpTime(t.expectedVisitTime);
 
     if (t && a) {
       const tmpl = templateService.findByServiceTypeAndCategory(t.taskType, a.category ?? '');
@@ -289,32 +298,120 @@ export default function EngineerTaskDetailPage() {
   /* ── Save Draft ─────────────────────────────────────────── */
   function handleSaveDraft() {
     if (!task || !workPerformed.trim()) { toast.info('Fill in Work Performed to save draft'); return; }
+    const summaryNotes = [
+      resolutionStatus ? `[Resolution: ${resolutionStatus}]` : '',
+      partsRequiredText ? `Parts Needed: ${partsRequiredText}` : '',
+      followUpDate ? `Next Follow-up Visit: ${followUpDate} ${followUpTime || ''}` : '',
+      followUpRemarks ? `Follow-up plan: ${followUpRemarks}` : '',
+      internalNotes,
+    ].filter(Boolean).join('\n');
+
     engineerService.saveWorkCompletion(task.id, ENGINEER_ID, {
       problemFound, rootCause, resolution: workPerformed,
-      workPerformed, recommendations, customerRemarks, internalNotes,
-      partsReplaced: '', signatureId: signature?.id,
+      workPerformed, recommendations, customerRemarks, internalNotes: summaryNotes,
+      partsReplaced: parts.map((p) => `${p.partName} x${p.quantity}`).join(', ') || 'None',
+      signatureId: signature?.id,
       resolutionStatus,
     });
     toast.success('Draft saved');
   }
 
-  /* ── Complete Task ──────────────────────────────────────── */
-  function handleCompleteTask() {
+  /* ── Submit Work (Resolved closes ticket; others keep in Pending / Waiting Parts) ── */
+  async function handleSubmitWork() {
     if (!task) return;
-    if (!workPerformed.trim()) { toast.error('Work Performed is required'); return; }
-    if (!signatureDataUrl && !signature?.signatureDataUrl) { toast.error('Customer signature is required'); return; }
+    if (!workPerformed.trim()) {
+      toast.error('Work Performed is required');
+      document.getElementById('work-summary')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    if (!resolutionStatus) {
+      toast.error('Please select Resolution Status: Resolved, Temporary Fix, Parts Required, or Follow-up Required');
+      document.getElementById('work-summary')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+    if (resolutionStatus === 'Parts Required' && !partsRequiredText.trim() && materials.length === 0) {
+      toast.error('Please specify the required spare parts / materials');
+      return;
+    }
+    if (!signatureDataUrl && !signature?.signatureDataUrl) {
+      toast.error('Customer signature is required');
+      document.getElementById('signature')?.scrollIntoView({ behavior: 'smooth' });
+      return;
+    }
+
+    // Determine target task status:
+    // Only 'Resolved' closes the ticket!
+    // 'Parts Required' moves to 'Waiting Parts'.
+    // 'Temporary Fix' & 'Follow-up Required' stay in 'Pending' (or active workflow).
+    let nextStatus: TaskStatus = 'Completed';
+    if (resolutionStatus === 'Resolved') {
+      nextStatus = 'Completed';
+    } else if (resolutionStatus === 'Parts Required') {
+      nextStatus = 'Waiting Parts';
+    } else if (resolutionStatus === 'Temporary Fix') {
+      nextStatus = 'Pending';
+    } else if (resolutionStatus === 'Follow-up Required') {
+      nextStatus = 'Pending';
+    }
+
+    const summaryNotes = [
+      `[Resolution: ${resolutionStatus}]`,
+      partsRequiredText ? `Parts Needed: ${partsRequiredText}` : '',
+      followUpDate ? `Next Follow-up Visit: ${followUpDate} ${followUpTime || ''}` : '',
+      followUpRemarks ? `Follow-up plan: ${followUpRemarks}` : '',
+      internalNotes,
+    ].filter(Boolean).join('\n');
+
     engineerService.saveWorkCompletion(task.id, ENGINEER_ID, {
-      problemFound, rootCause, resolution: workPerformed,
-      workPerformed, recommendations, customerRemarks, internalNotes,
+      problemFound,
+      rootCause,
+      resolution: workPerformed,
+      workPerformed,
+      recommendations,
+      customerRemarks,
+      internalNotes: summaryNotes,
       partsReplaced: parts.map((p) => `${p.partName} x${p.quantity}`).join(', ') || 'None',
       signatureId: signature?.id,
       resolutionStatus,
     });
-    // Record service end time then update status
-    taskService.recordServiceEnd(task.id, task.serviceStartTime)
-      .then(() => taskService.updateStatus(task.id, 'Completed' as TaskStatus, ENGINEER_NAME))
-      .then(() => { toast.success('Task completed successfully!'); loadTask(); })
-      .catch(() => toast.error('Failed to update task status'));
+
+    try {
+      // Record service end time
+      await taskService.recordServiceEnd(task.id, task.serviceStartTime);
+
+      const patch: Partial<Task> = {
+        status: nextStatus,
+        resolutionStatus,
+        partsRequired: partsRequiredText || undefined,
+        followUpDate: followUpDate || undefined,
+        internalNotes: summaryNotes,
+      };
+
+      if (followUpDate) {
+        patch.expectedVisitDate = followUpDate;
+      }
+      if (followUpTime) {
+        patch.expectedVisitTime = followUpTime;
+      }
+      if (nextStatus === 'Completed') {
+        patch.completedAt = new Date().toISOString();
+      }
+
+      await taskService.update(task.id, patch as any, ENGINEER_NAME);
+
+      if (nextStatus === 'Completed') {
+        toast.success('Task fully resolved and closed!');
+      } else if (nextStatus === 'Waiting Parts') {
+        toast.success('Status updated to Waiting Parts. Ticket remains in pending list.');
+      } else {
+        toast.success(`Visit saved (${resolutionStatus}). Ticket remains open in Pending state.`);
+      }
+
+      await loadTask();
+    } catch (err) {
+      console.error('Failed to update task:', err);
+      toast.error('Failed to update task status');
+    }
   }
 
   /* ── WhatsApp share ─────────────────────────────────────── */
@@ -405,7 +502,34 @@ export default function EngineerTaskDetailPage() {
             {isCompleted && (
               <div className="flex items-center gap-2 px-3 py-2.5 bg-green-500/10 border border-green-500/30 rounded-lg">
                 <CheckCircle2 size={16} className="text-green-600 shrink-0" />
-                <p className="text-sm text-green-700 dark:text-green-400 font-semibold">Task Completed</p>
+                <div>
+                  <p className="text-sm text-green-700 dark:text-green-400 font-semibold">Task Completed & Closed</p>
+                  <p className="text-xs text-green-600/90 dark:text-green-400/80">Issue resolved and signed off by customer.</p>
+                </div>
+              </div>
+            )}
+            {!isCompleted && task.status === 'Waiting Parts' && (
+              <div className="flex items-start gap-2.5 px-3 py-2.5 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+                <Package size={17} className="text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Pending — Waiting for Parts</p>
+                  <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">
+                    {task.partsRequired ? `Parts needed: ${task.partsRequired}` : 'Spare parts / materials are needed to complete this task.'}
+                  </p>
+                </div>
+              </div>
+            )}
+            {!isCompleted && task.status === 'Pending' && resolutionStatus && resolutionStatus !== 'Resolved' && (
+              <div className="flex items-start gap-2.5 px-3 py-2.5 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <Clock size={17} className="text-blue-600 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">
+                    Pending — {resolutionStatus}
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-400 mt-0.5">
+                    {task.expectedVisitDate ? `Next scheduled visit: ${task.expectedVisitDate} ${task.expectedVisitTime ?? ''}` : 'Ticket remains active in pending queue.'}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -664,24 +788,132 @@ export default function EngineerTaskDetailPage() {
                   </div>
                 ))}
                 {/* Resolution Status */}
-                <div>
-                  <Label className="text-xs text-muted-foreground mb-1 block">Resolution Status</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {(['Resolved', 'Temporary Fix', 'Parts Required', 'Follow-up Required'] as const).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        disabled={isCompleted}
-                        onClick={() => setResolutionStatus(s)}
-                        className={`px-3 py-1.5 rounded-full border text-xs font-medium transition-colors ${
-                          resolutionStatus === s
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'bg-muted text-muted-foreground border-border hover:border-primary/50'
-                        }`}
-                      >{s}</button>
-                    ))}
+                <div className="pt-2 border-t border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs font-semibold text-foreground">
+                      Resolution Status <span className="text-destructive">*</span>
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground">
+                      {resolutionStatus === 'Resolved' && 'Ticket will be closed'}
+                      {resolutionStatus === 'Parts Required' && 'Moves to Waiting Parts (Pending)'}
+                      {resolutionStatus === 'Temporary Fix' && 'Keeps ticket open in Pending state'}
+                      {resolutionStatus === 'Follow-up Required' && 'Schedules follow-up (Pending)'}
+                      {!resolutionStatus && 'Select outcome'}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { key: 'Resolved',           label: 'Resolved',           desc: 'Close Ticket',       color: 'hover:border-emerald-500', active: 'bg-emerald-600 text-white border-emerald-600 shadow-sm', icon: CheckCircle2 },
+                      { key: 'Temporary Fix',      label: 'Temporary Fix',      desc: 'Keep Pending',       color: 'hover:border-orange-500',  active: 'bg-orange-600 text-white border-orange-600 shadow-sm',   icon: Clock },
+                      { key: 'Parts Required',     label: 'Parts Required',     desc: 'Wait for Parts',     color: 'hover:border-amber-500',   active: 'bg-amber-600 text-white border-amber-600 shadow-sm',     icon: Package },
+                      { key: 'Follow-up Required', label: 'Follow-up Required', desc: 'Schedule Visit',     color: 'hover:border-blue-500',    active: 'bg-blue-600 text-white border-blue-600 shadow-sm',       icon: Calendar },
+                    ].map(({ key, label, desc, color, active, icon: SIcon }) => {
+                      const isSelected = resolutionStatus === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          disabled={isCompleted}
+                          onClick={() => setResolutionStatus(key as WorkCompletion['resolutionStatus'])}
+                          className={`p-2.5 rounded-xl border text-left flex flex-col gap-1 transition-all ${color} ${
+                            isSelected
+                              ? active
+                              : 'bg-card text-foreground border-border hover:bg-muted/40'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 font-semibold text-xs">
+                            <SIcon size={14} className={isSelected ? 'text-white' : 'text-primary'} />
+                            <span>{label}</span>
+                          </div>
+                          <span className={`text-[10px] ${isSelected ? 'text-white/80' : 'text-muted-foreground'}`}>{desc}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
+
+                {/* Sub-feature: Parts Required Drawer / Input */}
+                {resolutionStatus === 'Parts Required' && (
+                  <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50/70 dark:bg-amber-950/20 p-3.5 flex flex-col gap-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300 font-semibold text-xs">
+                        <Package size={15} />
+                        <span>Specify Parts / Materials Needed</span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs border-amber-400 text-amber-900 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/30"
+                        onClick={() => {
+                          const matEl = document.getElementById('materials');
+                          if (matEl) matEl.scrollIntoView({ behavior: 'smooth' });
+                          setExtraOpen(true);
+                        }}
+                      >
+                        <Plus size={12} className="mr-1" /> Add to Materials List
+                      </Button>
+                    </div>
+                    <Textarea
+                      placeholder="e.g. 1x Power Supply 12V 2A, 1x Dome Camera Lens, 2x RJ45 connectors..."
+                      value={partsRequiredText}
+                      onChange={(e) => setPartsRequiredText(e.target.value)}
+                      disabled={isCompleted}
+                      rows={2}
+                      className="bg-background text-sm resize-none"
+                    />
+                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                      Submitting will update the ticket to <strong>Waiting Parts</strong> and keep it in your pending task list until parts arrive.
+                    </p>
+                  </div>
+                )}
+
+                {/* Sub-feature: Follow-up & Temporary Fix scheduling */}
+                {(resolutionStatus === 'Follow-up Required' || resolutionStatus === 'Temporary Fix') && (
+                  <div className="rounded-xl border border-blue-300 dark:border-blue-800 bg-blue-50/70 dark:bg-blue-950/20 p-3.5 flex flex-col gap-2.5">
+                    <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 font-semibold text-xs">
+                      <Calendar size={15} />
+                      <span>{resolutionStatus === 'Temporary Fix' ? 'Temporary Fix — Next Visit Plan' : 'Schedule Next Follow-up Visit'}</span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground mb-1 block">Next Visit Date</Label>
+                        <Input
+                          type="date"
+                          value={followUpDate}
+                          min={new Date().toISOString().slice(0, 10)}
+                          onChange={(e) => setFollowUpDate(e.target.value)}
+                          disabled={isCompleted}
+                          className="h-9 bg-background text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-[11px] text-muted-foreground mb-1 block">Preferred Time Slot (optional)</Label>
+                        <Input
+                          type="time"
+                          value={followUpTime}
+                          onChange={(e) => setFollowUpTime(e.target.value)}
+                          disabled={isCompleted}
+                          className="h-9 bg-background text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-[11px] text-muted-foreground mb-1 block">Next Steps / Observations</Label>
+                      <Textarea
+                        placeholder="What needs to be done on the next visit? (e.g. replace temporary cable, verify system overnight)..."
+                        value={followUpRemarks}
+                        onChange={(e) => setFollowUpRemarks(e.target.value)}
+                        disabled={isCompleted}
+                        rows={2}
+                        className="bg-background text-sm resize-none"
+                      />
+                    </div>
+                    <p className="text-[11px] text-blue-700 dark:text-blue-400">
+                      The ticket will remain open in your <strong>Pending</strong> tasks list with this scheduled date.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Section>
 
@@ -750,10 +982,51 @@ export default function EngineerTaskDetailPage() {
                   <Save size={15} className="shrink-0" />
                   <span className="truncate">Save Draft</span>
                 </Button>
-                <Button className="gap-1.5 h-11 flex-[1.4] min-w-0 font-semibold" onClick={handleCompleteTask}>
-                  <CheckCircle2 size={15} className="shrink-0" />
-                  <span className="truncate">Complete Task</span>
-                </Button>
+                {resolutionStatus === 'Resolved' && (
+                  <Button
+                    className="gap-1.5 h-11 flex-[1.4] min-w-0 font-semibold bg-emerald-600 hover:bg-emerald-700 text-white"
+                    onClick={handleSubmitWork}
+                  >
+                    <CheckCircle2 size={15} className="shrink-0" />
+                    <span className="truncate">Complete & Close Task</span>
+                  </Button>
+                )}
+                {resolutionStatus === 'Parts Required' && (
+                  <Button
+                    className="gap-1.5 h-11 flex-[1.4] min-w-0 font-semibold bg-amber-600 hover:bg-amber-700 text-white"
+                    onClick={handleSubmitWork}
+                  >
+                    <Package size={15} className="shrink-0" />
+                    <span className="truncate">Submit (Waiting Parts)</span>
+                  </Button>
+                )}
+                {resolutionStatus === 'Follow-up Required' && (
+                  <Button
+                    className="gap-1.5 h-11 flex-[1.4] min-w-0 font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={handleSubmitWork}
+                  >
+                    <Calendar size={15} className="shrink-0" />
+                    <span className="truncate">Submit & Keep Pending</span>
+                  </Button>
+                )}
+                {resolutionStatus === 'Temporary Fix' && (
+                  <Button
+                    className="gap-1.5 h-11 flex-[1.4] min-w-0 font-semibold bg-orange-600 hover:bg-orange-700 text-white"
+                    onClick={handleSubmitWork}
+                  >
+                    <Clock size={15} className="shrink-0" />
+                    <span className="truncate">Submit Temporary Fix</span>
+                  </Button>
+                )}
+                {!resolutionStatus && (
+                  <Button
+                    className="gap-1.5 h-11 flex-[1.4] min-w-0 font-semibold"
+                    onClick={handleSubmitWork}
+                  >
+                    <CheckCircle2 size={15} className="shrink-0" />
+                    <span className="truncate">Submit Work</span>
+                  </Button>
+                )}
               </>
             ) : (
               <>

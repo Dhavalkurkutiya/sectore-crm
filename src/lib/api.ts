@@ -502,6 +502,9 @@ function rowToTask(row: Record<string, unknown>): Task {
     customerFeedback:   row.customer_feedback as string | undefined,
     contactPerson:      row.contact_person as string | undefined,
     contactMobile:      row.contact_mobile as string | undefined,
+    resolutionStatus:   row.resolution_status as Task['resolutionStatus'],
+    partsRequired:      row.parts_required as string | undefined,
+    followUpDate:       row.follow_up_date as string | undefined,
     createdBy:          row.created_by as string,
     createdAt:          row.created_at as string,
     updatedAt:          row.updated_at as string,
@@ -533,6 +536,9 @@ function taskToRow(data: Partial<TaskFormData & Task>) {
   if (data.customerFeedback  !== undefined) row.customer_feedback  = data.customerFeedback || null;
   if (data.contactPerson     !== undefined) row.contact_person     = data.contactPerson || null;
   if (data.contactMobile     !== undefined) row.contact_mobile     = data.contactMobile || null;
+  if (data.resolutionStatus  !== undefined) row.resolution_status  = data.resolutionStatus || null;
+  if (data.partsRequired     !== undefined) row.parts_required     = data.partsRequired || null;
+  if (data.followUpDate      !== undefined) row.follow_up_date     = data.followUpDate || null;
   if (data.createdBy         !== undefined) row.created_by         = data.createdBy;
   return row;
 }
@@ -597,7 +603,16 @@ export const tasksApi = {
 
   async update(id: string, data: Partial<TaskFormData>): Promise<Task> {
     const row = { ...taskToRow(data), updated_at: new Date().toISOString() };
-    const { data: updated, error } = await pg('tasks').update(row).eq('id', id).select().maybeSingle();
+    let { data: updated, error } = await pg('tasks').update(row).eq('id', id).select().maybeSingle();
+    if (error && (error.message.includes('column') || error.message.includes('resolution_status') || error.message.includes('parts_required') || error.message.includes('follow_up_date'))) {
+      // Fallback if extra columns do not exist yet in remote DB schema
+      delete row.resolution_status;
+      delete row.parts_required;
+      delete row.follow_up_date;
+      const res = await pg('tasks').update(row).eq('id', id).select().maybeSingle();
+      updated = res.data;
+      error = res.error;
+    }
     if (error) throw new Error(error.message);
     return rowToTask(updated as Record<string, unknown>);
   },

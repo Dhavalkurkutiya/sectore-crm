@@ -109,11 +109,12 @@ function buildReportHtml(props: Omit<WorkOrderPrintProps, 'onClose'>): string {
   const findings = [
     { label: 'Problem Reported', value: task.issueDescription },
     ...(completion ? [
-      { label: 'Fault Found',      value: completion.problemFound },
-      { label: 'Root Cause',       value: completion.rootCause },
-      { label: 'Work Performed',   value: completion.workPerformed },
-      { label: 'Resolution',       value: completion.resolution !== completion.workPerformed ? completion.resolution : undefined },
-      { label: 'Recommendations',  value: completion.recommendations },
+      { label: 'Fault Found',        value: completion.problemFound },
+      { label: 'Root Cause',         value: completion.rootCause },
+      { label: 'Work Performed',     value: completion.workPerformed },
+      { label: 'Resolution Status',  value: completion.resolutionStatus },
+      { label: 'Resolution',         value: completion.resolution !== completion.workPerformed ? completion.resolution : undefined },
+      { label: 'Recommendations',    value: completion.recommendations },
     ] : []),
   ].filter((f) => !!f.value);
 

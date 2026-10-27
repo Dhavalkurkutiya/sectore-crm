@@ -6,17 +6,17 @@ import { Badge } from '@/components/ui/badge';
 import type { AttendanceStatus } from '@/types/engineer';
 
 /* ── Attendance Status ────────────────────────────────────────── */
-const ATTENDANCE_STYLES: Record<AttendanceStatus, string> = {
+const ATTENDANCE_STYLES: Record<string, string> = {
   checked_in:  'bg-success/10 text-success border-success/20',
   checked_out: 'bg-muted text-muted-foreground border-border',
   absent:      'bg-destructive/10 text-destructive border-destructive/20',
 };
-const ATTENDANCE_LABELS: Record<AttendanceStatus, string> = {
+const ATTENDANCE_LABELS: Record<string, string> = {
   checked_in:  'Checked In',
   checked_out: 'Checked Out',
   absent:      'Absent',
 };
-export function AttendanceStatusBadge({ status }: { status: AttendanceStatus }) {
+export function AttendanceStatusBadge({ status }: { status: AttendanceStatus | string }) {
   return (
     <Badge variant="outline" className={`text-xs font-medium whitespace-nowrap ${ATTENDANCE_STYLES[status]}`}>
       {ATTENDANCE_LABELS[status]}

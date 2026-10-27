@@ -75,6 +75,10 @@ export interface Task {
   // Contact info captured at ticket creation
   contactPerson?: string;
   contactMobile?: string;
+  // Resolution & pending workflow fields
+  resolutionStatus?: 'Resolved' | 'Temporary Fix' | 'Parts Required' | 'Follow-up Required';
+  partsRequired?: string;
+  followUpDate?: string;
   createdBy: string;
   createdAt: string;
   updatedAt: string;

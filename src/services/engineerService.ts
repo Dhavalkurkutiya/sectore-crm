@@ -19,6 +19,7 @@ import { attendanceService } from './attendanceService';
 import { fuelService } from './fuelService';
 import { tasksApi } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import type { Task } from '@/types/task';
 
 const now = () => new Date().toISOString();
 const today = () => new Date().toISOString().slice(0, 10);
@@ -194,6 +195,10 @@ export const engineerService = {
 
   /* ── Signatures (in-memory — no DB table) ──────────────── */
   getSignature(taskId: string): CustomerSignature | null {
+    try {
+      const stored = localStorage.getItem(`customer_signature_${taskId}`);
+      if (stored) return JSON.parse(stored);
+    } catch {}
     return signaturesStore.find((s) => s.taskId === taskId) ?? null;
   },
 
@@ -208,6 +213,9 @@ export const engineerService = {
     };
     if (existing !== -1) signaturesStore[existing] = sig;
     else signaturesStore.push(sig);
+    try {
+      localStorage.setItem(`customer_signature_${taskId}`, JSON.stringify(sig));
+    } catch {}
     return sig;
   },
 
@@ -228,6 +236,10 @@ export const engineerService = {
 
   /* ── Work Completion (in-memory) ───────────────────────── */
   getWorkCompletion(taskId: string): WorkCompletion | null {
+    try {
+      const stored = localStorage.getItem(`work_completion_${taskId}`);
+      if (stored) return JSON.parse(stored);
+    } catch {}
     return workCompletionsStore.find((w) => w.taskId === taskId) ?? null;
   },
 
@@ -236,6 +248,9 @@ export const engineerService = {
     const wc: WorkCompletion = { id: nextWorkCompletionId(), taskId, engineerId, completedAt: now(), ...data };
     if (existing !== -1) workCompletionsStore[existing] = wc;
     else workCompletionsStore.push(wc);
+    try {
+      localStorage.setItem(`work_completion_${taskId}`, JSON.stringify(wc));
+    } catch {}
     return wc;
   },
 

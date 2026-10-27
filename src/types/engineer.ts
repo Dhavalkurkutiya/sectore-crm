@@ -4,7 +4,7 @@
  */
 
 /* ── Attendance ─────────────────────────────────────────────── */
-export type AttendanceStatus = 'checked_in' | 'checked_out' | 'absent';
+export type AttendanceStatus = 'checked_in' | 'checked_out' | 'absent' | 'leave' | 'On Leave' | 'Absent';
 
 export interface GPSLocation {
   latitude: number;
@@ -31,7 +31,8 @@ export interface Attendance {
   checkOutTime?: string;               // ISO
   checkOutGPS?: GPSLocation;
   workingHours?: number;               // decimal hours
-  status: AttendanceStatus;
+  status: AttendanceStatus | string;
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
